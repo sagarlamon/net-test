@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: white;
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+
+        body.light-theme {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #1a1a2e;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #8e9aaf;
+            font-size: 14px;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+        }
+
+        body.light-theme .theme-toggle {
+            background: rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-toggle-slider {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-toggle.light .theme-toggle-slider {
+            transform: translateX(28px);
+        }
+
+        body.light-theme .subtitle {
+            color: #4a5568;
+        }
+
+        body.light-theme .logo {
+            background: linear-gradient(135deg, #00c9a0 0%, #00b5d5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-display {
+            text-align: center;
+            margin-bottom: 30px;
+            min-height: 120px;
+        }
+
+        .speed-value {
+            font-size: 96px;
+            font-weight: 700;
+            line-height: 1;
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 245, 160, 0.3);
+        }
+
+        .speed-value.idle {
+            opacity: 0.3;
+        }
+
+        .speed-label {
+            font-size: 24px;
+            color: #8e9aaf;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .graph-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 245, 160, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+
+        body.light-theme .graph-container {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 197, 160, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .graph-wrapper {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 100%;
+            gap: 4px;
+        }
+
+        .bar {
+            flex: 1;
+            background: linear-gradient(to top, #00f5a0, #00d9f5);
+            border-radius: 4px 4px 0 0;
+            min-height: 2%;
+            transition: height 0.3s ease;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 245, 160, 0.3);
+            opacity: 0.8;
+        }
+
+        .bar.active {
+            opacity: 1;
+            box-shadow: 0 0 30px rgba(0, 245, 160, 0.6);
+        }
+
+        .graph-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            left: 0;
+        }
+
+        .grid-label {
+            position: absolute;
+            right: 10px;
+            color: #8e9aaf;
+            font-size: 12px;
+            transform: translateY(-50%);
+            transition: color 0.5s ease;
+        }
+
+        body.light-theme .grid-label {
+            color: #4a5568;
+        }
+
+        body.light-theme .grid-line {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .ping-display {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            background: rgba(0, 245, 160, 0.1);
+            border: 1px solid rgba(0, 245, 160, 0.3);
+            padding: 12px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            transition: all 0.5s ease;
+        }
+
+        body.light-theme .ping-display {
+            background: rgba(0, 197, 160, 0.15);
+            border: 1px solid rgba(0, 197, 160, 0.4);
+        }
+
+        .ping-label {
+            font-size: 12px;
+            color: #8e9aaf;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.5s ease;
+        }
+
+        body.light-theme .ping-label {
+            color: #4a5568;
+        }
+
+        .ping-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00f5a0;
+            margin-top: 4px;
+            transition: color 0.5s ease;
+        }
+
+        body.light-theme .ping-value {
+            color: #00c9a0;
+        }
+
+        .test-status {
+            text-align: center;
+            margin: 20px 0;
+            min-height: 24px;
+        }
+
+        .status-text {
+            font-size: 16px;
+            color: #00f5a0;
+            font-weight: 500;
+        }
+
+        .start-button {
+            display: block;
+            width: 200px;
+            margin: 0 auto 40px;
+            padding: 18px 36px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a2e;
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 24px rgba(0, 245, 160, 0.3);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 245, 160, 0.4);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        .start-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .results-grid.show {
+            opacity: 1;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 245, 160, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .result-label {
+            font-size: 12px;
+            color: #8e9aaf;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .result-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .result-unit {
+            font-size: 14px;
+            color: #8e9aaf;
+            margin-top: 4px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            transition: border-color 0.5s ease;
+        }
+
+        body.light-theme .footer {
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .credit {
+            font-size: 14px;
+            color: #8e9aaf;
+            font-weight: 500;
+            transition: color 0.5s ease;
+        }
+
+        body.light-theme .credit {
+            color: #4a5568;
+        }
+
+        .credit span {
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        body.light-theme .credit span {
+            background: linear-gradient(135deg, #00c9a0 0%, #00b5d5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .testing {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 245, 160, 0.3);
+            border-top-color: #00f5a0;
+            border-radius: 50%;
+            animation: rotate 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+        <div class="theme-toggle-slider">🌙</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">SPEEDTEST</div>
+            <div class="subtitle">Measure your internet performance</div>
+        </div>
+
+        <div class="main-display">
+            <div class="speed-value" id="speedValue">0.0</div>
+            <div class="speed-label" id="speedLabel">Mbps</div>
+        </div>
+
+        <div class="graph-container">
+            <div class="graph-grid">
+                <div class="grid-line" style="top: 0%;">
+                    <div class="grid-label">200</div>
+                </div>
+                <div class="grid-line" style="top: 25%;">
+                    <div class="grid-label">150</div>
+                </div>
+                <div class="grid-line" style="top: 50%;">
+                    <div class="grid-label">100</div>
+                </div>
+                <div class="grid-line" style="top: 75%;">
+                    <div class="grid-label">50</div>
+                </div>
+                <div class="grid-line" style="top: 100%;">
+                    <div class="grid-label">0</div>
+                </div>
+            </div>
+
+            <div class="ping-display" id="pingDisplay">
+                <div class="ping-label">Ping</div>
+                <div class="ping-value" id="pingValue">-- ms</div>
+            </div>
+
+            <div class="graph-wrapper" id="graphBars"></div>
+        </div>
+
+        <div class="test-status">
+            <div class="status-text" id="statusText"></div>
+        </div>
+
+        <button class="start-button" id="startButton" onclick="startTest()">GO</button>
+
+        <div class="results-grid" id="results">
+            <div class="result-card">
+                <div class="result-label">Ping</div>
+                <div class="result-value" id="pingResult">--</div>
+                <div class="result-unit">ms</div>
+            </div>
+            <div class="result-card">
+                <div class="result-label">Download</div>
+                <div class="result-value" id="downloadSpeed">--</div>
+                <div class="result-unit">Mbps</div>
+            </div>
+            <div class="result-card">
+                <div class="result-label">Upload</div>
+                <div class="result-value" id="uploadSpeed">--</div>
+                <div class="result-unit">Mbps</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="credit">Made by <span>SAGAR</span></div>
+        </div>
+    </div>
+
+    <script>
+        const NUM_BARS = 50;
+        let bars = [];
+        let animationInterval = null;
+        let testResults = {
+            download: 0,
+            upload: 0,
+            ping: 0
+        };
+
+        function initializeBars() {
+            const graphBars = document.getElementById('graphBars');
+            graphBars.innerHTML = '';
+            bars = [];
+
+            for (let i = 0; i < NUM_BARS; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = '2%';
+                bar.style.opacity = '0.3';
+                graphBars.appendChild(bar);
+                bars.push(bar);
+            }
+        }
+
+        function updateGraph(speed) {
+            const speedValue = document.getElementById('speedValue');
+            speedValue.classList.remove('idle');
+            speedValue.textContent = speed.toFixed(1);
+
+            // Shift all bars to the left
+            for (let i = 0; i < bars.length - 1; i++) {
+                bars[i].style.height = bars[i + 1].style.height;
+                bars[i].style.opacity = bars[i + 1].style.opacity;
+                bars[i].classList.remove('active');
+            }
+
+            // Add new bar with random variation for realistic fluctuation
+            const variation = (Math.random() - 0.5) * 20;
+            const barHeight = Math.max(2, Math.min(100, (speed + variation) / 200 * 100));
+            bars[bars.length - 1].style.height = barHeight + '%';
+            bars[bars.length - 1].style.opacity = '1';
+            bars[bars.length - 1].classList.add('active');
+        }
+
+        function startAnimation() {
+            // Animation removed - graph only updates during testing
+        }
+
+        function stopAnimation() {
+            // Animation removed - graph only updates during testing
+        }
+
+        function setStatus(text, showLoader = false) {
+            const statusText = document.getElementById('statusText');
+            statusText.innerHTML = text + (showLoader ? '<span class="loading"></span>' : '');
+        }
+
+        async function measurePing() {
+            const measurements = [];
+            const pingValue = document.getElementById('pingValue');
+            
+            for (let i = 0; i < 5; i++) {
+                const start = performance.now();
+                try {
+                    await fetch('https://www.cloudflare.com/cdn-cgi/trace', { 
+                        method: 'GET',
+                        cache: 'no-cache'
+                    });
+                    const end = performance.now();
+                    const ping = end - start;
+                    measurements.push(ping);
+                    pingValue.textContent = Math.round(ping) + ' ms';
+                    updateGraph(Math.random() * 20);
+                } catch (e) {
+                    console.error('Ping failed:', e);
+                }
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            return measurements.length > 0 
+                ? measurements.reduce((a, b) => a + b) / measurements.length 
+                : 0;
+        }
+
+        async function measureDownload() {
+            // Using multiple files for download test
+            const testFiles = [
+                'https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js',
+                'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css',
+                'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+                'https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js'
+            ];
+            
+            let totalBytes = 0;
+            let totalTime = 0;
+            let successfulTests = 0;
+
+            for (let i = 0; i < 3; i++) {
+                for (const url of testFiles) {
+                    const start = performance.now();
+                    
+                    try {
+                        const response = await fetch(url, { 
+                            cache: 'no-cache',
+                            mode: 'cors'
+                        });
+                        const data = await response.blob();
+                        const end = performance.now();
+                        
+                        totalBytes += data.size;
+                        totalTime += (end - start);
+                        successfulTests++;
+                        
+                        const seconds = totalTime / 1000;
+                        const bits = totalBytes * 8;
+                        const mbps = (bits / seconds / 1000000);
+                        updateGraph(mbps);
+                        
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    } catch (e) {
+                        console.error('Download test failed:', e);
+                    }
+                }
+            }
+
+            if (successfulTests === 0) return 0;
+            
+            const seconds = totalTime / 1000;
+            const bits = totalBytes * 8;
+            const mbps = (bits / seconds / 1000000);
+            return mbps;
+        }
+
+        async function measureUpload() {
+            const sizes = [0.5, 1, 2];
+            let totalBytes = 0;
+            let totalTime = 0;
+
+            for (const size of sizes) {
+                const data = new Blob([new ArrayBuffer(size * 1024 * 1024)]);
+                const start = performance.now();
+                
+                try {
+                    await fetch('https://httpbin.org/post', {
+                        method: 'POST',
+                        body: data,
+                        cache: 'no-cache'
+                    });
+                    const end = performance.now();
+                    
+                    totalBytes += data.size;
+                    totalTime += (end - start);
+                    
+                    const seconds = totalTime / 1000;
+                    const bits = totalBytes * 8;
+                    const mbps = (bits / seconds / 1000000);
+                    updateGraph(mbps);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (e) {
+                    console.error('Upload test failed:', e);
+                }
+            }
+
+            const seconds = totalTime / 1000;
+            const bits = totalBytes * 8;
+            const mbps = (bits / seconds / 1000000);
+            return mbps;
+        }
+
+        async function startTest() {
+            const button = document.getElementById('startButton');
+            const results = document.getElementById('results');
+            const speedValue = document.getElementById('speedValue');
+
+            button.disabled = true;
+            results.classList.remove('show');
+            speedValue.classList.remove('idle');
+
+            // Reset graph
+            bars.forEach(bar => {
+                bar.style.height = '2%';
+                bar.style.opacity = '0.3';
+                bar.classList.remove('active');
+            });
+
+            // Ping Test
+            setStatus('Testing ping', true);
+            testResults.ping = await measurePing();
+            document.getElementById('pingResult').textContent = Math.round(testResults.ping);
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Download Test
+            setStatus('Testing download speed', true);
+            testResults.download = await measureDownload();
+            document.getElementById('downloadSpeed').textContent = testResults.download.toFixed(1);
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Upload Test
+            setStatus('Testing upload speed', true);
+            testResults.upload = await measureUpload();
+            document.getElementById('uploadSpeed').textContent = testResults.upload.toFixed(1);
+
+            // Complete
+            setStatus('Test complete!', false);
+            results.classList.add('show');
+            speedValue.classList.add('idle');
+            
+            setTimeout(() => {
+                button.disabled = false;
+                setStatus('');
+            }, 2000);
+        }
+
+        // Initialize
+        initializeBars();
+        document.getElementById('speedValue').classList.add('idle');
+
+        function toggleTheme() {
+            const body = document.body;
+            const toggle = document.getElementById('themeToggle');
+            const slider = toggle.querySelector('.theme-toggle-slider');
+            
+            body.classList.toggle('light-theme');
+            toggle.classList.toggle('light');
+            
+            if (body.classList.contains('light-theme')) {
+                slider.textContent = '☀️';
+            } else {
+                slider.textContent = '🌙';
+            }
+        }
+    </script>
+</body>
+</html>
